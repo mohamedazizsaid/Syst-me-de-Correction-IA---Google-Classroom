@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body { font-family: Arial, sans-serif; margin: 20px; }
+      .container { max-width: 500px; }
+      .section { margin: 15px 0; }
+      select, button { width: 100%; padding: 10px; margin: 5px 0; }
+      button { background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+      button:hover { background-color: #45a049; }
+      .loading { color: gray; font-style: italic; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>🎯 Sélectionner un devoir</h2>
+      
+      <div class="section">
+        <label for="courseSelect">Cours :</label>
+        <select id="courseSelect" onchange="loadCourseWork()">
+          <option value="">Chargement des cours...</option>
+        </select>
+      </div>
+      
+      <div class="section">
+        <label for="workSelect">Devoir :</label>
+        <select id="workSelect" disabled>
+          <option value="">Sélectionnez d'abord un cours</option>
+        </select>
+      </div>
+      
+      <div class="section">
+        <label for="templateSelect">Template de correction :</label>
+        <select id="templateSelect">
+          <option value="default">Template par défaut</option>
+          <option value="detailed">Correction détaillée</option>
+          <option value="simple">Correction simple</option>
+        </select>
+      </div>
+      
+      <button onclick="startCorrection()" id="correctionBtn" disabled>
+        🚀 Lancer la correction
+      </button>
+      
+      <p id="status" class="loading"></p>
+    </div>
+    
+    <script>
+      // Charger les cours au démarrage
+      google.script.run.withSuccessHandler(populateCourses).listCoursesForPicker();
+      
+      function populateCourses(courses) {
+        const select = document.getElementById('courseSelect');
+        select.innerHTML = '<option value="">Sélectionnez un cours</option>';
+        
+        courses.forEach(course => {
+          const option = document.createElement('option');
+          option.value = course.id;
+          option.textContent = course.name;
+          select.appendChild(option);
+        });
+      }
+      
+      function loadCourseWork() {
+        const courseId = document.getElementById('courseSelect').value;
+        const workSelect = document.getElementById('workSelect');
+        const status = document.getElementById('status');
+        
+        if (!courseId) {
+          workSelect.innerHTML = '<option value="">Sélectionnez d\'abord un cours</option>';
+          workSelect.disabled = true;
+          document.getElementById('correctionBtn').disabled = true;
+          return;
+        }
+        
+        status.textContent = 'Chargement des devoirs...';
+        workSelect.innerHTML = '<option value="">Chargement...</option>';
+        workSelect.disabled = true;
+        
+        google.script.run.withSuccessHandler(populateCourseWork)
+          .withFailureHandler(showError)
+          .getCourseWork(courseId);
+      }
+      
+      function populateCourseWork(courseWork) {
+        const workSelect = document.getElementById('workSelect');
+        const status = document.getElementById('status');
+        
+        workSelect.innerHTML = '<option value="">Sélectionnez un devoir</option>';
+        
+        if (courseWork.length === 0) {
+          workSelect.innerHTML = '<option value="">Aucun devoir trouvé</option>';
+          status.textContent = 'Aucun devoir trouvé pour ce cours';
+          return;
+        }
+        
+        courseWork.forEach(work => {
+          const option = document.createElement('option');
+          option.value = work.id;
+          option.textContent = work.title;
+          workSelect.appendChild(option);
+        });
+        
+        workSelect.disabled = false;
+        document.getElementById('correctionBtn').disabled = false;
+        status.textContent = `${courseWork.length} devoir(s) trouvé(s)`;
+      }
+      
+      function startCorrection() {
+        const courseId = document.getElementById('courseSelect').value;
+        const workId = document.getElementById('workSelect').value;
+        const template = document.getElementById('templateSelect').value;
+        
+        if (!courseId || !workId) {
+          alert('Veuillez sélectionner un cours et un devoir');
+          return;
+        }
+        
+        const status = document.getElementById('status');
+        status.textContent = 'Lancement de la correction...';
+        document.getElementById('correctionBtn').disabled = true;
+        
+        google.script.run.withSuccessHandler(correctionStarted)
+          .withFailureHandler(showError)
+          .startCorrectionFromPicker(courseId, workId, template);
+      }
+      
+      function correctionStarted(result) {
+        document.getElementById('status').textContent = result;
+        setTimeout(() => {
+          google.script.host.close();
+        }, 2000);
+      }
+      
+      function showError(error) {
+        alert('Erreur : ' + error.toString());
+        document.getElementById('status').textContent = 'Erreur survenue';
+      }
+    </script>
+  </body>
+</html>
