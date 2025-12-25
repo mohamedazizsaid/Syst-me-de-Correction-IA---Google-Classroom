@@ -1,6 +1,20 @@
 function listCourses() {
-  const courses =
-    Classroom.Courses.list({ teacherId: "me" }).courses || [];
+  let courses = [];
+  let pageToken = null;
+  
+  do {
+    const response = Classroom.Courses.list({
+      teacherId: "me",
+      pageSize: 20,
+      pageToken: pageToken
+    });
+    
+    if (response.courses) {
+      courses = courses.concat(response.courses);
+    }
+    
+    pageToken = response.nextPageToken;
+  } while (pageToken);
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet =
@@ -10,7 +24,11 @@ function listCourses() {
   sheet.clear();
   sheet.appendRow(["Course ID", "Nom"]);
 
-  courses.forEach(c =>
-    sheet.appendRow([c.id, c.name])
-  );
+  if (courses.length > 0) {
+    courses.forEach(c =>
+      sheet.appendRow([c.id, c.name])
+    );
+  } else {
+    sheet.appendRow(["Aucun cours trouvé", ""]);
+  }
 }

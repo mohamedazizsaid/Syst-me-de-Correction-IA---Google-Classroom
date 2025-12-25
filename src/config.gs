@@ -17,8 +17,9 @@ var CONFIG = {
 // Fonction pour vérifier la configuration
 function checkConfig() {
   const ui = SpreadsheetApp.getUi();
+  const apiKey = CONFIG.DEEPSEEK_API_KEY;
   
-  if (CONFIG.DEEPSEEK_API_KEY === "sk-votre-cle-api-ici") {
+  if (!apiKey || apiKey.trim() === "" || apiKey === "sk-votre-cle-api-ici") {
     ui.alert(
       '⚠️ Configuration requise',
       'Veuillez configurer votre clé API DeepSeek dans le fichier config.gs',
